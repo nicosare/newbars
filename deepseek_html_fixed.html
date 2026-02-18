@@ -1,0 +1,3077 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <title>GIH - Минибары</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        /* все стили без изменений (как в исходном файле) */
+        :root {
+            --bg: #f6f7fb;
+            --card: #fff;
+            --muted: #8b95a3;
+            --text: #0f1724;
+            --primary: #276749;
+            --primary-strong: #1b5e20;
+            --accent: #ff8a00;
+            --radius: 14px;
+            --shadow-sm: 0 6px 18px rgba(12,18,24,0.06);
+            --transition: 200ms ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Inter',system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+            padding: 18px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .app-layout {
+            display: flex;
+            gap: 16px;
+        }
+
+        .tab-nav {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            padding: 8px;
+            display: flex;
+            gap: 6px;
+        }
+
+        .tab-nav-desktop {
+            flex-direction: column;
+            min-width: 140px;
+            height: fit-content;
+            align-self: flex-start;
+            position: sticky;
+            top: 18px;
+        }
+
+        .tab-nav-mobile {
+            display: none;
+        }
+
+        .tab-nav-button {
+            border: none;
+            border-radius: var(--radius);
+            padding: 8px 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: flex-start;
+            background: transparent;
+            color: var(--muted);
+            transition: background-color var(--transition), color var(--transition), box-shadow var(--transition);
+        }
+
+        .tab-nav-button span.icon {
+            font-size: 16px;
+        }
+
+        .tab-nav-button.active {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 6px 14px rgba(39,103,73,0.22);
+        }
+
+        .tab-nav-button:not(.active):hover {
+            background: rgba(39,103,73,0.06);
+            color: var(--primary-strong);
+        }
+
+        .app-main {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 14px;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 18px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .header h1 {
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--primary-strong);
+        }
+
+        .btn {
+            border: none;
+            border-radius: 999px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #fff;
+            background: var(--primary);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+            min-height: 40px;
+            transition: background-color var(--transition);
+        }
+
+        .btn:hover {
+            background: var(--primary-strong);
+        }
+
+        .btn.ghost {
+            background: transparent;
+            color: var(--primary-strong);
+            border: 1px solid rgba(15,23,36,0.04);
+        }
+
+        .btn.ghost:hover {
+            background: rgba(39,103,73,0.05);
+        }
+
+        .btn.small {
+            padding: 6px 10px;
+            font-size: 13px;
+        }
+
+        .input {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(15,23,36,0.06);
+            background: transparent;
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        .input:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(39,103,73,0.1);
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .gih-form {
+            display: none;
+            gap: 10px;
+            margin-top: 12px;
+            padding: 12px;
+            background: rgba(39,103,73,0.03);
+            border-radius: 10px;
+        }
+
+        .gih-form.show {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .gih-form-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .mode-btn.icon-only {
+            padding: 6px;
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .gih-products-area {
+            padding: 8px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            border-radius: 10px;
+            border: 1px solid rgba(15,23,36,0.04);
+            max-height: 400px;
+            overflow: auto;
+            background: transparent;
+        }
+
+        .gih-products-columns {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .gih-column {
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .gih-column-title {
+            font-weight: 600;
+            margin: 6px 0;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .gih-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .product-btn {
+            position: relative;
+            min-width: 90px;
+            padding: 8px 12px;
+            padding-right: 30px;
+            border-radius: 12px;
+            border: 1px solid rgba(15,23,36,0.06);
+            background: transparent;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 13px;
+            transition: all var(--transition);
+        }
+
+        .product-btn:hover {
+            box-shadow: 0 4px 12px rgba(12,18,24,0.08);
+            background: rgba(39,103,73,0.02);
+        }
+
+        .product-btn.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary-strong);
+        }
+
+        .product-count {
+            position: absolute;
+            right: 3px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--accent);
+            color: #fff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 11px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .product-count:empty {
+            background: transparent;
+            border: 1px solid rgba(15,23,36,0.2);
+        }
+
+        .gih-records {
+            display: grid;
+            grid-template-columns: repeat(auto-fill,minmax(320px,1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .gih-card {
+            padding: 14px;
+            border-radius: 12px;
+            background: var(--card);
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .gih-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .gih-card-room {
+            font-weight: 700;
+            color: var(--primary-strong);
+            font-size: 16px;
+        }
+
+        .gih-products {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .gih-product {
+            padding: 8px 10px;
+            border-radius: 10px;
+            background: var(--card);
+            font-size: 13px;
+            border: 1px solid rgba(15,23,36,0.04);
+            cursor: pointer;
+            transition: none !important;
+            user-select: none;
+        }
+
+        .gih-product.status-0 {
+            background: #fff;
+            color: var(--text);
+            border-color: rgba(15,23,36,0.06);
+        }
+
+        .gih-product.status-1 {
+            background: #bfeec0;
+            color: #064e17;
+            border-color: rgba(39,103,73,0.12);
+        }
+
+        .gih-product.status-2 {
+            background: #bfe0f6;
+            color: #044a6a;
+            border-color: rgba(11,111,176,0.12);
+            text-decoration: line-through;
+        }
+
+        .gih-product.status-3 {
+            background: #e0e0e0;
+            color: #333;
+            border-color: rgba(120,120,120,0.12);
+        }
+
+        .gih-product.status-4 {
+            background: #f7bdbd;
+            color: #6b0b0b;
+            border-color: rgba(229,62,62,0.12);
+        }
+
+        .gih-footer {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .mode-btn {
+            border: 1px solid rgba(15,23,36,0.08);
+            background: #fff;
+            color: var(--primary-strong);
+            padding: 6px 10px;
+            border-radius: 999px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            transition: all var(--transition);
+        }
+
+        .mode-btn.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary-strong);
+            box-shadow: 0 4px 10px rgba(39,103,73,0.1);
+        }
+
+        .mode-btn:hover:not(.active) {
+            border-color: var(--primary);
+            background: rgba(39,103,73,0.05);
+        }
+
+        .mode-btn[disabled] {
+            opacity: 0.55;
+            pointer-events: none;
+        }
+
+        .legend {
+            margin-top: 8px;
+            font-size: 12px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .legend .item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            border-radius: 8px;
+        }
+
+        .legend .color {
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+            display: inline-block;
+            border: 1px solid rgba(15,23,36,0.04);
+        }
+
+        .legend .t-added { background: #bfeec0; }
+        .legend .t-here { background: #bfe0f6; }
+        .legend .t-out { background: #e0e0e0; }
+        .legend .t-miss { background: #f7bdbd; }
+
+        .card-footer-row {
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-end;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .card-save {
+            background: #2f9d3a;
+            color: #fff;
+            border: none;
+            padding: 8px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .card-save:hover:not([disabled]) {
+            background: #278c32;
+            box-shadow: 0 4px 10px rgba(39,103,73,0.2);
+        }
+
+        .card-save[disabled] {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .saved-at {
+            font-size: 13px;
+            color: #1b7a2b;
+            margin-top: 6px;
+        }
+
+        #gih-summary {
+            margin: 8px 0;
+            padding: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        #gih-summary:hover {
+            background: rgba(0,0,0,0.03);
+        }
+
+        #gih-summary-title {
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        #gih-summary-list {
+            transition: max-height 0.3s ease, opacity 0.2s ease;
+            overflow: hidden;
+            font-size: 12px;
+            line-height: 1.35;
+            margin-top: 6px;
+        }
+
+        #gih-summary.collapsed #gih-summary-list {
+            max-height: 0;
+            opacity: 0;
+        }
+
+        #gih-summary.expanded #gih-summary-list {
+            max-height: 2000px;
+            opacity: 1;
+        }
+
+        #gih-summary-arrow {
+            transition: transform 0.25s ease;
+        }
+
+        #gih-summary.collapsed #gih-summary-arrow {
+            transform: rotate(-90deg);
+        }
+
+        #gih-rooms-summary {
+            margin: 8px 0;
+            padding: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        #gih-rooms-summary:hover {
+            background: rgba(0,0,0,0.03);
+        }
+
+        #gih-rooms-summary-title {
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        #gih-rooms-summary-list {
+            transition: max-height 0.3s ease, opacity 0.2s ease;
+            overflow: hidden;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
+            font-size: 12px;
+            line-height: 1.35;
+        }
+
+        #gih-rooms-summary.collapsed #gih-rooms-summary-list {
+            max-height: 0;
+            opacity: 0;
+        }
+
+        #gih-rooms-summary.expanded #gih-rooms-summary-list {
+            max-height: 2000px;
+            opacity: 1;
+        }
+
+        #gih-rooms-summary-arrow {
+            transition: transform 0.25s ease;
+        }
+
+        #gih-rooms-summary.collapsed #gih-rooms-summary-arrow {
+            transform: rotate(-90deg);
+        }
+
+        .room-chip {
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(15,23,36,0.08);
+            background: var(--card);
+            font-size: 13px;
+            cursor: pointer;
+            transition: box-shadow 0.18s ease, background 0.18s ease, color 0.18s ease;
+        }
+
+        .room-chip:hover {
+            background: rgba(39,103,73,0.08);
+        }
+
+        .room-chip.saved {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary-strong);
+        }
+
+        @keyframes gihCardFlash {
+            0% { box-shadow: 0 0 0 3px var(--primary); }
+            100% { box-shadow: none; }
+        }
+
+        .gih-card.highlighted {
+            animation: gihCardFlash 0.8s ease-out;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            background: var(--card);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 12px;
+            transition: var(--transition);
+        }
+
+        .connection-status.connected {
+            color: var(--primary-strong);
+        }
+
+        .connection-status.disconnected {
+            color: #e53e3e;
+        }
+
+        .connection-status .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            transition: var(--transition);
+        }
+
+        .connection-status.connected .dot {
+            background: var(--primary-strong);
+            box-shadow: 0 0 0 2px rgba(39,103,73,0.2);
+        }
+
+        .connection-status.disconnected .dot {
+            background: #e53e3e;
+            box-shadow: 0 0 0 2px rgba(229,62,62,0.2);
+        }
+
+        .history-date-controls {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .history-calendar-buttons {
+            display: inline-flex;
+            gap: 8px;
+            transition: opacity 0.2s;
+        }
+
+        .history-date-controls.search-active .history-calendar-buttons {
+            display: none;
+        }
+
+        .history-search-wrap {
+            display: inline-flex;
+            align-items: center;
+            overflow: hidden;
+            max-width: 0;
+            opacity: 0;
+            transition: max-width 0.3s ease, opacity 0.25s ease, margin 0.25s ease;
+        }
+
+        .history-search-wrap.visible {
+            max-width: 200px;
+            opacity: 1;
+        }
+
+        .history-search-input {
+            width: 100px;
+            min-width: 100px;
+            padding: 6px 10px;
+            font-size: 13px;
+        }
+
+        .history-arrow-btn,
+        .history-date-button {
+            border-radius: 999px;
+            border: 1px solid rgba(15,23,36,0.04);
+            background: transparent;
+            color: var(--primary-strong);
+            transition: background var(--transition), border-color var(--transition);
+        }
+
+        .history-date-button i {
+            margin-right: 8px;
+        }
+
+        .history-arrow-btn {
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .history-arrow-btn:hover {
+            background: rgba(39,103,73,0.05);
+            border-color: var(--primary);
+        }
+
+        .history-date-button {
+            padding: 6px 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .history-date-button:hover {
+            background: rgba(39,103,73,0.05);
+            border-color: var(--primary);
+        }
+
+        .history-search-result-date {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--primary-strong);
+            margin-bottom: 4px;
+        }
+
+        .history-search-result-time {
+            font-size: 12px;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .history-empty {
+            margin-top: 8px;
+            font-size: 13px;
+        }
+
+        .history-calendar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15,23,36,0.35);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 40;
+        }
+
+        .history-calendar-overlay.show {
+            display: flex;
+        }
+
+        .history-calendar {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: 0 18px 40px rgba(15,23,36,0.38);
+            padding: 14px;
+            min-width: 260px;
+        }
+
+        .history-calendar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .history-calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            font-size: 12px;
+        }
+
+        .history-calendar-day,
+        .history-calendar-weekday {
+            text-align: center;
+            padding: 4px 0;
+        }
+
+        .history-calendar-weekday {
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        .history-calendar-day button {
+            width: 35px;
+            height: 35px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .history-calendar-day button:hover {
+            background: rgba(39,103,73,0.08);
+        }
+
+        .history-calendar-day button.selected {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .history-calendar-day button.today {
+            border: 2px solid var(--primary);
+            background: rgba(39,103,73,0.08);
+        }
+
+        .history-calendar-day button.today.selected {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .history-calendar-day-cell {
+            position: relative;
+        }
+
+        .history-calendar-day-count {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            padding: 3px;
+            border-radius: 5px;
+            border: 2px solid var(--primary);
+            background: #fff;
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--primary);
+            min-width: 15px;
+            min-height: 15px;
+        }
+
+        .history-today-btn {
+            border: 1px solid rgba(15,23,36,0.04);
+            border-radius: 999px;
+            padding: 6px 12px;
+            margin-left: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            background: transparent;
+            color: var(--primary-strong);
+        }
+
+        .history-today-btn:hover {
+            background: rgba(39,103,73,0.05);
+        }
+
+        .gih-separator {
+            margin: 16px 0 8px;
+            font-weight: 600;
+            color: var(--muted);
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            padding-bottom: 4px;
+            grid-column: 1 / -1;
+        }
+
+        /* Стили для суммы в истории */
+        .record-sum {
+            text-align: right;
+            margin-top: 6px;
+            font-weight: 600;
+            color: #1b5e20;
+            font-size: 14px;
+        }
+        .bundle-total {
+            text-align: right;
+            margin-top: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            color: #0f1724;
+            border-top: 1px dashed rgba(15,23,36,0.1);
+            padding-top: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .gih-records {
+                grid-template-columns: 1fr;
+            }
+
+            .gih-products-columns {
+                flex-direction: column;
+            }
+
+            .gih-column {
+                min-width: 100%;
+            }
+
+            .app-layout {
+                display: block;
+            }
+
+            .tab-nav-desktop {
+                display: none;
+            }
+
+            .tab-nav-mobile {
+                display: flex;
+                position: fixed;
+                bottom: max(12px, env(safe-area-inset-bottom));
+                left: 50%;
+                transform: translateX(-50%);
+                flex-direction: row;
+                justify-content: center;
+                gap: 8px;
+                border-radius: 999px;
+                padding: 6px 12px;
+                z-index: 30;
+                max-width: 280px;
+                box-shadow: 0 4px 20px rgba(15,23,36,0.15);
+            }
+
+            body {
+                padding-bottom: 76px;
+            }
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div class="container">
+        <div class="connection-status disconnected" id="connectionStatus">
+            <span class="dot"></span>
+            <span class="text">Соединение...</span>
+        </div>
+
+        <div class="app-layout">
+            <nav class="tab-nav tab-nav-desktop">
+                <button class="tab-nav-button active" data-tab="gih">
+                    <span class="icon"><i class="fas fa-users"></i></span>
+                    <span>GIH</span>
+                </button>
+                <button class="tab-nav-button" data-tab="history">
+                    <span class="icon"><i class="fas fa-clock-rotate-left"></i></span>
+                    <span>История</span>
+                </button>
+            </nav>
+            <nav class="tab-nav tab-nav-mobile">
+                <button class="tab-nav-button" data-tab="history">
+                    <span class="icon"><i class="fas fa-clock-rotate-left"></i></span>
+                    <span>История</span>
+                </button>
+                <button class="tab-nav-button active" data-tab="gih">
+                    <span class="icon"><i class="fas fa-users"></i></span>
+                    <span>GIH</span>
+                </button>
+            </nav>
+
+            <div class="app-main">
+                <div class="card" id="gih-section">
+                    <div class="header">
+                        <div>
+                            <h1 id="gih-title-date">GIH</h1>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <button class="btn ghost small" id="gih-sort-btn" title="Сортировать">
+                                <i class="fas fa-sort-numeric-down"></i>
+                            </button>
+                            <button class="btn small" id="add-gih-btn">
+                                <i class="fas fa-plus"></i> Новая запись
+                            </button>
+                        </div>
+                    </div>
+
+            <div class="gih-form" id="gih-form">
+                <div class="gih-form-row">
+                    <input class="input" id="gih-room" placeholder="Номер комнаты" style="width:140px"/>
+                    <button class="mode-btn icon-only" id="gih-bundle-toggle" type="button" title="Связка">
+                        <i class="fas fa-chain-broken"></i>
+                    </button>
+                    <div style="flex:1">
+                        <div class="gih-products-area" id="gih-products-area"></div>
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
+                    <button class="btn ghost small" id="cancel-gih">Отмена</button>
+                    <button class="btn small" id="save-gih">Сохранить</button>
+                </div>
+            </div>
+
+            <div class="card" id="gih-summary" style="margin:8px 0; padding:10px; cursor:pointer;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div id="gih-summary-title">Список продуктов</div>
+                    <svg height="16" id="gih-summary-arrow" viewBox="0 0 24 24" width="16">
+                        <path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                </div>
+                <div class="muted" id="gih-summary-list"></div>
+            </div>
+
+            <div class="card" id="gih-rooms-summary" style="margin:8px 0; padding:10px; cursor:pointer;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div id="gih-rooms-summary-title">Список номеров (<span id="rooms-saved-count">0</span>/<span id="rooms-total-count">0</span>)</div>
+                    <svg height="16" id="gih-rooms-summary-arrow" viewBox="0 0 24 24" width="16">
+                        <path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                </div>
+                <div class="muted" id="gih-rooms-summary-list"></div>
+            </div>
+
+                <div class="gih-records" id="gih-records"></div>
+                </div>
+
+                <div class="card" id="history-section" style="display:none;">
+                    <div class="header">
+                        <h1 id="history-title-date">История</h1>
+                        <div class="history-date-controls">
+                            <div class="history-calendar-buttons">
+                                <button class="history-arrow-btn" id="history-prev-day" title="Предыдущий день">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <button class="history-date-button" id="history-date-button" type="button" title="Выбрать дату">
+    <i class="fas fa-calendar-alt"></i>
+    <span id="history-date-label"></span>
+</button>
+                                <button class="history-arrow-btn" id="history-next-day" title="Следующий день">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                            <div class="history-search-wrap" id="history-search-wrap">
+                                <input class="input history-search-input" id="history-search-input" placeholder="Номер" autocomplete="off"/>
+                                <button class="btn ghost small" id="history-search-clear" title="Сбросить поиск" style="margin-left:4px;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <button class="history-arrow-btn" id="history-search-toggle" title="Поиск по номеру">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="history-date-view" id="history-date-view">
+                        <div class="gih-records" id="history-records"></div>
+                        <div class="muted history-empty" id="history-empty" style="display:none;">
+                            Нет сохранённых записей за выбранную дату.
+                        </div>
+                    </div>
+                    <div class="history-search-view" id="history-search-view" style="display:none;">
+                        <div class="gih-records" id="history-search-results"></div>
+                        <div class="muted history-empty" id="history-search-empty" style="display:none;">
+                            Ничего не найдено.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="history-calendar-overlay" id="history-calendar-overlay">
+            <div class="history-calendar">
+                <div class="history-calendar-header">
+                    <button class="history-arrow-btn" id="history-cal-prev-month" type="button">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div id="history-cal-month-label" style="font-weight:600;"></div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <button class="history-today-btn" id="history-cal-today-btn" type="button">Сегодня</button>
+                        <button class="history-arrow-btn" id="history-cal-next-month" type="button">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="history-calendar-grid" id="history-cal-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCSta7ZX1DbvVkN8ho0UkRUep-_wvmwFeU",
+            authDomain: "minibars-1.firebaseapp.com",
+            databaseURL: "https://minibars-1-default-rtdb.firebaseio.com",
+            projectId: "minibars-1",
+            storageBucket: "minibars-1.firebasestorage.app",
+            messagingSenderId: "974942625214",
+            appId: "1:974942625214:web:f8393f4ce10b823582adef",
+            measurementId: "G-31X6DYMG0Q"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        const appData = {
+            gihRecords: [],
+            roomProducts: {
+                standard: ['twix', 'pepper', 'redbull', 'cola', 'baikal', 'borjomi', 'apple', 'tomato', 'corona', 'stella'],
+                lux: ['twix', 'redbull', 'orange', 'cherry', 'apple', 'tomato', 'borjomi', 'cola', 'stella', 'corona']
+            }
+        };
+
+        let productsMeta = {};
+
+        const MULTI_LIMITS = {
+            jager: 2, gin: 2, vodka: 2, whiskey: 3,
+            pepper: 2, redbull: 2, cola: 2, baikal: 2, borjomi: 2
+        };
+
+        const STATUS = { NEUTRAL: 0, ADDED: 1, HERE: 2, OUT: 3, MISS: 4 };
+
+        let gihTempProducts = {};
+        let editingGIHId = null;
+        let gihSortAsc = true;
+        let isUpdatingFromFirebase = false;
+        let historyDateKey = getLocalDateKey(new Date());
+
+        let gihBundleActive = false;
+        let editingBundleId = null;
+
+        const $ = s => document.querySelector(s);
+        const $$ = s => Array.from(document.querySelectorAll(s));
+
+        function updateConnectionStatus(connected) {
+            const statusEl = $('#connectionStatus');
+            if (connected) {
+                statusEl.classList.remove('disconnected');
+                statusEl.classList.add('connected');
+                statusEl.querySelector('.text').textContent = 'Синхронизировано';
+            } else {
+                statusEl.classList.remove('connected');
+                statusEl.classList.add('disconnected');
+                statusEl.querySelector('.text').textContent = 'Оффлайн';
+            }
+        }
+
+        database.ref('.info/connected').on('value', (snapshot) => {
+            updateConnectionStatus(snapshot.val() === true);
+        });
+
+        async function saveToFirebase() {
+            if (isUpdatingFromFirebase) return;
+            try {
+                const recordsForDb = convertRecordsToFirebase(appData.gihRecords);
+                await database.ref('gihData').set({
+                    records: recordsForDb,
+                    lastUpdated: new Date().toISOString()
+                });
+                console.log('✅ Данные сохранены в Firebase');
+            } catch (error) {
+                console.error('Ошибка сохранения:', error);
+            }
+        }
+
+        function getLocalDateKey(d = new Date()) {
+            const yyyy = String(d.getFullYear());
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        function sanitizeFirebaseKey(key) {
+            const s = String(key ?? '').trim();
+            const cleaned = s.replace(/[.$#[\]\/]/g, '_').replace(/\s+/g, '_');
+            return cleaned || 'unknown';
+        }
+
+        async function loadProductsFromFirebase() {
+            try {
+                const snap = await database.ref('products').once('value');
+                productsMeta = snap.val() || {};
+                console.log('✅ Продукты загружены из Firebase');
+            } catch (e) {
+                console.error('Ошибка загрузки products из БД:', e);
+                productsMeta = {};
+            }
+        }
+
+        function getProductMeta(key) {
+            return (productsMeta && productsMeta[key]) || {};
+        }
+
+        function getProductName(key) {
+            const meta = getProductMeta(key);
+            return meta.name || key;
+        }
+
+        function getProductEmoji(key) {
+            const meta = getProductMeta(key);
+            return meta.emoji || '';
+        }
+
+        const STATUS_LABELS = {
+            0: 'neutral',
+            1: 'added',
+            2: 'here',
+            3: 'out',
+            4: 'miss'
+        };
+
+        const STATUS_CODE_FROM_LABEL = {
+            neutral: 0,
+            added: 1,
+            here: 2,
+            out: 3,
+            miss: 4
+        };
+
+        function convertRecordsToFirebase(records) {
+            const result = {};
+            if (!Array.isArray(records)) return result;
+
+            records.forEach(rec => {
+                if (!rec) return;
+                const roomRaw = rec.room || rec.number;
+                const baseKey = sanitizeFirebaseKey(roomRaw);
+                if (!baseKey) return;
+
+                let key = baseKey;
+                let i = 0;
+                while (Object.prototype.hasOwnProperty.call(result, key)) {
+                    i += 1;
+                    key = `${baseKey}_${i}`;
+                }
+
+                const dbRec = {};
+                Object.keys(rec).forEach(k => {
+                    if (k === 'room' || k === 'products' || k === 'id' || k === 'createdAt' || k === 'updatedAt' || k === 'historySavedAt') return;
+                    dbRec[k] = rec[k];
+                });
+                if (rec.bundleId) dbRec.bundleId = rec.bundleId;
+
+                const productsObj = {};
+                (rec.products || []).forEach(p => {
+                    if (!p || !p.name) return;
+                    const name = p.name;
+                    const code = Number(p.status || 0);
+                    const label = STATUS_LABELS[code] || 'neutral';
+                    if (!productsObj[name]) productsObj[name] = [];
+                    productsObj[name].push(label);
+                });
+                dbRec.products = productsObj;
+
+                result[key] = dbRec;
+            });
+
+            return result;
+        }
+
+        function convertRecordsFromFirebase(rawRecords) {
+            if (Array.isArray(rawRecords)) {
+                return rawRecords;
+            }
+
+            const out = [];
+            if (!rawRecords || typeof rawRecords !== 'object') return out;
+
+            Object.entries(rawRecords).forEach(([roomKey, dbRec]) => {
+                if (!dbRec) return;
+
+                const rec = {};
+                Object.keys(dbRec).forEach(k => {
+                    if (k === 'products') return;
+                    rec[k] = dbRec[k];
+                });
+                if (dbRec.bundleId !== undefined) rec.bundleId = dbRec.bundleId;
+
+                const baseRoom = String(dbRec.room || roomKey).split('_')[0];
+                rec.room = baseRoom;
+
+                if (!rec.id) {
+                    rec.id = `${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
+                }
+
+                const products = dbRec.products;
+                const prodArr = [];
+
+                if (Array.isArray(products)) {
+                    products.forEach(p => {
+                        if (p && p.name) {
+                            prodArr.push({ name: p.name, status: Number(p.status || 0) });
+                        }
+                    });
+                } else if (products && typeof products === 'object') {
+                    Object.entries(products).forEach(([name, val]) => {
+                        if (Array.isArray(val)) {
+                            val.forEach(st => {
+                                if (typeof st === 'string') {
+                                    const code = STATUS_CODE_FROM_LABEL[st] ?? 0;
+                                    prodArr.push({ name, status: code });
+                                } else {
+                                    prodArr.push({ name, status: Number(st || 0) });
+                                }
+                            });
+                        } else if (val && typeof val === 'object') {
+                            Object.values(val).forEach(st => {
+                                if (typeof st === 'string') {
+                                    const code = STATUS_CODE_FROM_LABEL[st] ?? 0;
+                                    prodArr.push({ name, status: code });
+                                } else {
+                                    prodArr.push({ name, status: Number(st || 0) });
+                                }
+                            });
+                        } else {
+                            if (typeof val === 'string') {
+                                const code = STATUS_CODE_FROM_LABEL[val] ?? 0;
+                                prodArr.push({ name, status: code });
+                            } else {
+                                prodArr.push({ name, status: Number(val || 0) });
+                            }
+                        }
+                    });
+                }
+
+                rec.products = prodArr;
+                out.push(rec);
+            });
+
+            return out;
+        }
+
+        async function saveRecordToHistory(record) {
+            if (!record) return;
+            try {
+                const dateKey = record.savedDate || getLocalDateKey(new Date());
+                const baseKey = sanitizeFirebaseKey(record.room);
+                const dateRef = database.ref(`gihHistory/${dateKey}`);
+
+                const snap = await dateRef.once('value');
+                const existing = snap.val() || {};
+
+                let historyKey = baseKey;
+                let i = 0;
+                while (Object.prototype.hasOwnProperty.call(existing, historyKey)) {
+                    i += 1;
+                    historyKey = `${baseKey}_${i}`;
+                }
+
+                const { id, room, savedDate, products, ...rest } = record;
+
+                const productsObj = {};
+                (products || []).forEach(p => {
+                    if (!p || !p.name) return;
+                    const name = p.name;
+                    const code = Number(p.status || 0);
+                    const label = STATUS_LABELS[code] || 'neutral';
+                    if (!productsObj[name]) productsObj[name] = [];
+                    productsObj[name].push(label);
+                });
+
+                await dateRef.child(historyKey).set({
+                    ...rest,
+                    products: productsObj
+                });
+
+                console.log('📚 Запись сохранена в историю', dateKey, historyKey);
+            } catch (error) {
+                console.error('Ошибка сохранения в историю:', error);
+            }
+        }
+
+        async function findLastHistoryRecord(room) {
+            try {
+                const snap = await database.ref('gihHistory').once('value');
+                const historyData = snap.val() || {};
+                let candidates = [];
+
+                Object.entries(historyData).forEach(([dateKey, dayData]) => {
+                    if (!dayData || typeof dayData !== 'object') return;
+                    Object.entries(dayData).forEach(([roomKey, rec]) => {
+                        if (!rec) return;
+                        const baseRoom = String(roomKey).split('_')[0];
+                        if (baseRoom === room) {
+                            const record = historyRecordFromFirebase(roomKey, dateKey, rec);
+                            record._dateKey = dateKey;
+                            record._sortTime = record.savedAt || '00:00';
+                            candidates.push({ record, dateKey, roomKey });
+                        }
+                    });
+                });
+
+                if (candidates.length === 0) return null;
+
+                candidates.sort((a, b) => {
+                    if (a.record.updatedAt && b.record.updatedAt) {
+                        return b.record.updatedAt.localeCompare(a.record.updatedAt);
+                    }
+                    if (a.dateKey !== b.dateKey) {
+                        return b.dateKey.localeCompare(a.dateKey);
+                    }
+                    return (b.record.savedAt || '00:00').localeCompare(a.record.savedAt || '00:00');
+                });
+
+                const best = candidates[0];
+                const cleanRecord = { ...best.record };
+                delete cleanRecord._dateKey;
+                delete cleanRecord._sortTime;
+                return { record: cleanRecord, dateKey: best.dateKey, roomKey: best.roomKey };
+            } catch (e) {
+                console.error('Ошибка поиска в истории:', e);
+                return null;
+            }
+        }
+
+        async function updateRecordInHistory(record, dateKey, roomKey) {
+            if (!record || !dateKey || !roomKey) return;
+            try {
+                const historyRef = database.ref(`gihHistory/${dateKey}/${roomKey}`);
+                await historyRef.update({ bundleId: record.bundleId });
+                console.log('📚 bundleId обновлён в истории', dateKey, roomKey, record.bundleId);
+            } catch (e) {
+                console.error('Ошибка обновления истории:', e);
+            }
+        }
+
+        async function loadFromFirebase() {
+            try {
+                const snapshot = await database.ref('gihData').once('value');
+                const data = snapshot.val();
+                if (data && data.records) {
+                    isUpdatingFromFirebase = true;
+                    appData.gihRecords = convertRecordsFromFirebase(data.records);
+                    isUpdatingFromFirebase = false;
+                    updateUIFromData();
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+            }
+        }
+
+        function setupFirebaseListener() {
+            database.ref('gihData').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data && data.records && !isUpdatingFromFirebase) {
+                    isUpdatingFromFirebase = true;
+                    appData.gihRecords = convertRecordsFromFirebase(data.records);
+                    isUpdatingFromFirebase = false;
+                    updateUIFromData();
+                }
+            });
+        }
+
+        function updateUIFromData() {
+            appData.gihRecords.forEach(r => normalizeRecordProducts(r));
+            renderAllGIHRecords();
+            updateGIHSummary();
+            updateGIHRoomsSummary();
+        }
+
+        let saveTimer;
+        function saveDebounced() {
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(saveToFirebase, 300);
+        }
+
+        function statusTitle(s) {
+            switch (Number(s)) {
+                case 1: return 'Пополнено';
+                case 2: return 'На месте';
+                case 3: return 'Выложили';
+                case 4: return 'Не пополнено';
+                default: return 'Нейтральный';
+            }
+        }
+
+        function normalizeRecordProducts(record) {
+            if (!record) return;
+            if (!Array.isArray(record.products)) {
+                const newArr = [];
+                const p = record.products || {};
+                Object.entries(p).forEach(([k, v]) => {
+                    if (typeof v === 'number') {
+                        for (let i = 0; i < v; i++) newArr.push({ name: k, status: 0 });
+                    } else if (typeof v === 'string') {
+                        const map = { inplace: 2, added: 1, removed: 3 };
+                        const st = map[v] || 0;
+                        newArr.push({ name: k, status: st });
+                    } else {
+                        newArr.push({ name: k, status: 0 });
+                    }
+                });
+                record.products = newArr;
+            }
+            if (!('statusMode' in record)) record.statusMode = null;
+            if (record.statusMode === '') record.statusMode = null;
+            const anyNon = (record.products || []).some(p => Number(p.status || 0) !== 0);
+            if (anyNon && record.statusMode) record.statusMode = null;
+        }
+
+        function canSaveCard(rec) {
+            if (!rec) return false;
+            const allNonNeutral = (rec.products || []).length > 0 && 
+                (rec.products || []).every(p => Number(p.status || 0) !== 0);
+            const hasMode = rec.statusMode != null && rec.statusMode !== '';
+            return hasMode || allNonNeutral;
+        }
+
+        function formatHHMM(d) {
+            const hh = String(d.getHours()).padStart(2, '0');
+            const mm = String(d.getMinutes()).padStart(2, '0');
+            return `${hh}:${mm}`;
+        }
+
+        function buildGIHProductsArea() {
+            const area = $('#gih-products-area');
+            if (!area) return;
+            area.innerHTML = '';
+
+            const columnsWrap = document.createElement('div');
+            columnsWrap.className = 'gih-products-columns';
+
+            const cols = [
+                { title: 'Дверца', items: ['twix', 'jager', 'gin', 'rum', 'cognac', 'whiskey', 'vodka'] },
+                { title: 'Напитки', items: ['pepper', 'redbull', 'cola', 'baikal', 'borjomi'] },
+                { title: 'Алкоголь', items: ['white_wine', 'red_wine', 'corona', 'stella', 'gancha', 'martini', 'loriot', 'whiskey02'] },
+                { title: 'Соки', items: ['apple', 'tomato', 'orange', 'cherry'] }
+            ];
+
+            cols.forEach(col => {
+                const colEl = document.createElement('div');
+                colEl.className = 'gih-column';
+
+                const titleEl = document.createElement('div');
+                titleEl.className = 'gih-column-title';
+                titleEl.textContent = col.title;
+                colEl.appendChild(titleEl);
+
+                const row = document.createElement('div');
+                row.className = 'gih-row';
+
+                col.items.forEach(k => {
+                    const name = getProductName(k);
+                    const emoji = getProductEmoji(k);
+                    const btn = document.createElement('button');
+                    btn.className = 'product-btn';
+                    btn.dataset.product = k;
+
+                    const textSpan = document.createElement('span');
+                    textSpan.className = 'btn-text';
+                    textSpan.textContent = emoji ? `${emoji} ${name}` : name;
+                    btn.appendChild(textSpan);
+
+                    const maxQ = MULTI_LIMITS[k] || 1;
+                    const cur = gihTempProducts[k] || 0;
+
+                    const span = document.createElement('span');
+                    span.className = 'product-count';
+                    if (cur > 0) {
+                        btn.classList.add('active');
+                        span.textContent = cur;
+                    }
+                    btn.appendChild(span);
+
+                    btn.addEventListener('click', () => {
+                        const current = gihTempProducts[k] || 0;
+                        const next = (current + 1) % (maxQ + 1);
+
+                        if (next === 0) {
+                            delete gihTempProducts[k];
+                        } else {
+                            gihTempProducts[k] = next;
+                        }
+
+                        const countSpan = btn.querySelector('.product-count');
+                        if (next > 0) {
+                            btn.classList.add('active');
+                            countSpan.textContent = next;
+                        } else {
+                            btn.classList.remove('active');
+                            countSpan.textContent = '';
+                        }
+                    });
+
+                    row.appendChild(btn);
+                });
+
+                colEl.appendChild(row);
+                columnsWrap.appendChild(colEl);
+            });
+
+            area.appendChild(columnsWrap);
+        }
+
+        function clearGIHForm() {
+            $('#gih-room').value = '';
+            gihTempProducts = {};
+            buildGIHProductsArea();
+            editingGIHId = null;
+            gihBundleActive = false;
+            editingBundleId = null;
+            updateGIHBundleToggle(false, null);
+        }
+
+        function updateGIHBundleToggle(active, bundleId) {
+            const btn = $('#gih-bundle-toggle');
+            if (!btn) return;
+            const icon = btn.querySelector('i');
+            if (active) {
+                icon.className = 'fas fa-link';
+                btn.classList.add('active');
+            } else {
+                icon.className = 'fas fa-chain-broken';
+                btn.classList.remove('active');
+            }
+            gihBundleActive = active;
+            editingBundleId = active ? bundleId : null;
+        }
+
+        function sortByRoom(a, b) {
+            const na = Number(a.room);
+            const nb = Number(b.room);
+            if (!isFinite(na) && !isFinite(nb)) return 0;
+            if (!isFinite(na)) return 1;
+            if (!isFinite(nb)) return -1;
+            return gihSortAsc ? na - nb : nb - na;
+        }
+
+        function renderAllGIHRecords() {
+            const container = $('#gih-records');
+            container.innerHTML = '';
+
+            const unsaved = appData.gihRecords.filter(r => !r.savedAt);
+            const saved = appData.gihRecords.filter(r => r.savedAt);
+
+            unsaved.sort(sortByRoom);
+            saved.sort(sortByRoom);
+
+            unsaved.forEach(rec => renderGIHRecord(rec));
+
+            if (saved.length > 0) {
+                const separator = document.createElement('div');
+                separator.className = 'gih-separator';
+                container.appendChild(separator);
+                saved.forEach(rec => renderGIHRecord(rec));
+            }
+        }
+
+        function renderGIHRecord(record) {
+            const container = $('#gih-records');
+            normalizeRecordProducts(record);
+
+            const card = document.createElement('div');
+            card.className = 'gih-card';
+            card.setAttribute('data-id', record.id);
+
+            let rightActionsHtml = '';
+            if (record.savedAt) {
+                rightActionsHtml = `<div style="display:flex;gap:8px;align-items:center">
+                    <div class="muted" style="font-weight:600">${record.savedAt}</div>
+                    <button class="btn ghost small delete-btn" title="Удалить"><i class="fas fa-trash"></i></button>
+                </div>`;
+            } else {
+                rightActionsHtml = `<div style="display:flex;gap:8px">
+                    <button class="btn ghost small edit-btn" title="Редактировать"><i class="fas fa-edit"></i></button>
+                    <button class="btn ghost small delete-btn" title="Удалить"><i class="fas fa-trash"></i></button>
+                </div>`;
+            }
+
+            let roomDisplay = record.room;
+            if (record.bundleId) {
+                roomDisplay += ' <i class="fas fa-link" style="font-size:12px; margin-left:4px;"></i>';
+            }
+            const headerHtml = `<div class="gih-card-header">
+                <div class="gih-card-room">${roomDisplay}</div>
+                ${rightActionsHtml}
+            </div>`;
+
+            if (record.savedAt) {
+                const allNonNeutral = (record.products || []).length > 0 && 
+                    (record.products || []).every(p => Number(p.status || 0) !== 0);
+                let contentHtml = '';
+
+                if (record.statusMode) {
+                    const groups = {};
+                    (record.products || []).forEach(p => groups[p.name] = (groups[p.name] || 0) + 1);
+                    const parts = Object.entries(groups).map(([k, cnt]) => {
+                        const name = getProductName(k);
+                        return cnt > 1 ? `${name} x${cnt}` : `${name}`;
+                    });
+                    const productsDisplay = `<div class="muted" style="margin-top:10px">${parts.join(', ') || '&nbsp;'}</div>`;
+                    const modeLabelMap = { dnd: 'DND', allInPlace: 'Всё на месте', putOut: 'Всё выложили', emptied: 'Опустошён' };
+                    const modeLabel = modeLabelMap[record.statusMode] || record.statusMode || '';
+                    const modeHtml = modeLabel ? `<div style="margin-top:8px; font-weight:600">${modeLabel}</div>` : '';
+                    const commentHtml = record.comment ? `<div class="muted" style="margin-top:8px"><strong>Комментарий:</strong> ${record.comment}</div>` : '';
+                    contentHtml = productsDisplay + modeHtml + commentHtml;
+                    card.innerHTML = headerHtml + contentHtml;
+                    container.appendChild(card);
+
+                    const delBtnSaved = card.querySelector('.delete-btn');
+                    if (delBtnSaved) {
+                        delBtnSaved.addEventListener('click', () => {
+                            if (confirm('Удалить запись?')) {
+                                appData.gihRecords = appData.gihRecords.filter(r => r.id !== record.id);
+                                card.remove();
+                                saveDebounced();
+                                updateGIHSummary();
+                                updateGIHRoomsSummary();
+                            }
+                        });
+                    }
+                    return;
+                } else if (allNonNeutral) {
+                    const statusOrder = [1, 2, 3, 4];
+                    const statusClass = { 1: 't-added', 2: 't-here', 3: 't-out', 4: 't-miss' };
+                    const statusLabel = { 1: 'Пополнено', 2: 'На месте', 3: 'Выложили', 4: 'Не пополнено' };
+
+                    const groups = {};
+                    (record.products || []).forEach(p => {
+                        const st = Number(p.status || 0);
+                        const nm = p.name;
+                        groups[st] = groups[st] || {};
+                        groups[st][nm] = (groups[st][nm] || 0) + 1;
+                    });
+
+                    const lines = [];
+                    statusOrder.forEach(st => {
+                        if (!groups[st]) return;
+                        const names = Object.entries(groups[st]).map(([k, cnt]) => {
+                            const name = getProductName(k);
+                            return cnt > 1 ? `${name} x${cnt}` : `${name}`;
+                        });
+                        if (names.length) {
+                            const line = `<div style="margin-top:8px;">
+                                <div class="${statusClass[st]}" style="font-weight:700; font-size:13px">${statusLabel[st]}:</div>
+                                <div class="muted" style="margin-top:4px">${names.join(', ')}</div>
+                            </div>`;
+                            lines.push(line);
+                        }
+                    });
+
+                    const commentHtml = record.comment ? `<div class="muted" style="margin-top:8px"><strong>Комментарий:</strong> ${record.comment}</div>` : '';
+                    contentHtml = lines.join('') + commentHtml;
+                    card.innerHTML = headerHtml + contentHtml;
+                    container.appendChild(card);
+
+                    const delBtnSaved = card.querySelector('.delete-btn');
+                    if (delBtnSaved) {
+                        delBtnSaved.addEventListener('click', () => {
+                            if (confirm('Удалить запись?')) {
+                                appData.gihRecords = appData.gihRecords.filter(r => r.id !== record.id);
+                                card.remove();
+                                saveDebounced();
+                                updateGIHSummary();
+                                updateGIHRoomsSummary();
+                            }
+                        });
+                    }
+                    return;
+                } else {
+                    const parts = (record.products || []).map(p => appData.products[p.name] || p.name);
+                    const productsHtml = `<div class="muted" style="margin-top:10px">${parts.join(', ') || '&nbsp;'}</div>`;
+                    const commentHtml = record.comment ? `<div class="muted" style="margin-top:8px"><strong>Комментарий:</strong> ${record.comment}</div>` : '';
+                    card.innerHTML = headerHtml + productsHtml + commentHtml;
+                    container.appendChild(card);
+                    const delBtnSaved = card.querySelector('.delete-btn');
+                    if (delBtnSaved) {
+                        delBtnSaved.addEventListener('click', () => {
+                            if (confirm('Удалить запись?')) {
+                                appData.gihRecords = appData.gihRecords.filter(r => r.id !== record.id);
+                                card.remove();
+                                saveDebounced();
+                                updateGIHSummary();
+                                updateGIHRoomsSummary();
+                            }
+                        });
+                    }
+                    return;
+                }
+            }
+
+            const productsHtml = `<div class="gih-products"></div>`;
+            const commentHtml = record.comment ? `<div class="muted" style="margin-top:8px"><strong>Комментарий:</strong> ${record.comment}</div>` : '';
+            const footerHtml = `<div class="gih-footer">
+                <button class="mode-btn" data-mode="dnd">DND</button>
+                <button class="mode-btn" data-mode="allInPlace">Всё на месте</button>
+                <button class="mode-btn" data-mode="putOut">Всё выложили</button>
+                <button class="mode-btn" data-mode="emptied">Опустошён</button>
+                <button class="btn ghost small" data-action="comment">Комментарий</button>
+            </div>`;
+            const legendHtml = `<div class="legend">
+                <div class="item"><span class="color t-added"></span>Пополнено</div>
+                <div class="item"><span class="color t-here"></span>На месте</div>
+                <div class="item"><span class="color t-out"></span>Выложили</div>
+                <div class="item"><span class="color t-miss"></span>Не пополнено</div>
+            </div>`;
+            const saveRowHtml = `<div class="card-footer-row">
+                <div style="flex:1"></div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+                    <button class="card-save" ${canSaveCard(record) ? '' : ' disabled'}>Сохранить</button>
+                    <div class="saved-at">${record.savedAt ? `Сохранено в ${record.savedAt}` : ''}</div>
+                </div>
+            </div>`;
+
+            card.innerHTML = headerHtml + productsHtml + commentHtml + footerHtml + legendHtml + saveRowHtml;
+
+            const prodWrap = card.querySelector('.gih-products');
+            prodWrap.innerHTML = '';
+            (record.products || []).forEach((entry, idx) => {
+                const key = entry.name;
+                const display = getProductName(key);
+                const status = typeof entry.status === 'number' ? entry.status : 0;
+                const p = document.createElement('div');
+                p.className = 'gih-product status-' + status;
+                p.textContent = display;
+                p.dataset.index = idx;
+                p.dataset.key = key;
+                p.title = statusTitle(status);
+                p.addEventListener('click', () => {
+                    const rec = appData.gihRecords.find(r => r.id === record.id);
+                    if (!rec) return;
+                    if (rec.statusMode) return;
+                    const el = rec.products[parseInt(p.dataset.index, 10)];
+                    el.status = (Number(el.status || 0) + 1) % 5;
+                    p.className = 'gih-product status-' + el.status;
+                    p.title = statusTitle(el.status);
+                    saveDebounced();
+                    updateCardSaveUI(rec, card);
+                });
+                prodWrap.appendChild(p);
+            });
+
+            container.appendChild(card);
+
+            card.querySelectorAll('.mode-btn').forEach(btn => {
+                const mode = btn.dataset.mode;
+                btn.classList.toggle('active', record.statusMode === mode);
+                btn.addEventListener('click', () => {
+                    if (btn.disabled) return;
+                    const rec = appData.gihRecords.find(r => r.id === record.id);
+                    if (!rec) return;
+                    rec.statusMode = (rec.statusMode === mode) ? null : mode;
+                    saveDebounced();
+                    updateCardSaveUI(rec, card);
+                });
+            });
+
+            const commentBtn = card.querySelector('[data-action="comment"]');
+            if (commentBtn) {
+                commentBtn.addEventListener('click', () => {
+                    const val = prompt('Комментарий:', record.comment || '');
+                    if (val !== null) {
+                        record.comment = val;
+                        saveDebounced();
+                        card.remove();
+                        renderGIHRecord(record);
+                    }
+                });
+            }
+
+            const editBtn = card.querySelector('.edit-btn');
+            if (editBtn) {
+                editBtn.addEventListener('click', () => {
+                    editingGIHId = record.id;
+                    $('#gih-form').classList.add('show');
+                    $('#gih-room').value = record.room;
+                    setTimeout(() => {
+                        try {
+                            $('#gih-room').focus();
+                            $('#gih-room').select();
+                        } catch (e) {}
+                    }, 50);
+                    gihTempProducts = {};
+                    (record.products || []).forEach(p => {
+                        gihTempProducts[p.name] = (gihTempProducts[p.name] || 0) + 1;
+                    });
+                    buildGIHProductsArea();
+                    Object.entries(gihTempProducts).forEach(([k, cnt]) => {
+                        const btn = $(`.product-btn[data-product="${k}"]`);
+                        if (btn && cnt > 0) {
+                            btn.classList.add('active');
+                            const countSpan = btn.querySelector('.product-count');
+                            if (countSpan) countSpan.textContent = cnt;
+                        }
+                    });
+                    if (record.bundleId) {
+                        gihBundleActive = true;
+                        editingBundleId = record.bundleId;
+                        updateGIHBundleToggle(true, record.bundleId);
+                    } else {
+                        gihBundleActive = false;
+                        editingBundleId = null;
+                        updateGIHBundleToggle(false, null);
+                    }
+                });
+            }
+
+            const delBtn = card.querySelector('.delete-btn');
+            if (delBtn) {
+                delBtn.addEventListener('click', () => {
+                    if (confirm('Удалить запись?')) {
+                        appData.gihRecords = appData.gihRecords.filter(r => r.id !== record.id);
+                        card.remove();
+                        saveDebounced();
+                        updateGIHSummary();
+                        updateGIHRoomsSummary();
+                    }
+                });
+            }
+
+            const saveBtn = card.querySelector('.card-save');
+            const savedAtEl = card.querySelector('.saved-at');
+
+            saveBtn.addEventListener('click', () => {
+                const rec = appData.gihRecords.find(r => r.id === record.id);
+                if (!rec) return;
+                if (!canSaveCard(rec)) return;
+
+                const now = new Date();
+                const wasSaved = !!rec.savedAt;
+
+                rec.savedAt = formatHHMM(now);
+                rec.savedDate = rec.savedDate || getLocalDateKey(now);
+                rec.updatedAt = now.toISOString();
+                savedAtEl.textContent = `Сохранено в ${rec.savedAt}`;
+
+                if (!wasSaved) {
+                    saveRecordToHistory(rec);
+                }
+                saveDebounced();
+                updateCardSaveUI(rec, card);
+                card.remove();
+                renderGIHRecord(rec);
+                updateGIHSummary();
+                updateGIHRoomsSummary();
+            });
+
+            updateCardSaveUI(record, card);
+        }
+
+        function updateCardSaveUI(rec, cardEl) {
+            const record = rec;
+            const card = cardEl || document.querySelector(`.gih-card[data-id="${record.id}"]`);
+            if (!card) return;
+
+            const anyNonNeutral = (record.products || []).some(p => Number(p.status || 0) !== 0);
+            const allNonNeutral = (record.products || []).length > 0 && 
+                (record.products || []).every(p => Number(p.status || 0) !== 0);
+
+            card.querySelectorAll('.mode-btn').forEach(b => {
+                b.disabled = anyNonNeutral;
+                b.classList.toggle('active', record.statusMode === b.dataset.mode);
+            });
+
+            if (record.statusMode && anyNonNeutral) {
+                record.statusMode = null;
+                saveDebounced();
+                card.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            }
+
+            card.querySelectorAll('.gih-product').forEach((pEl, idx) => {
+                if (record.statusMode) {
+                    pEl.classList.add('disabled');
+                    pEl.title = statusTitle(record.products[idx].status);
+                } else {
+                    pEl.classList.remove('disabled');
+                    pEl.title = statusTitle(record.products[idx].status);
+                }
+            });
+
+            const enabled = (record.statusMode !== null) || allNonNeutral;
+            const saveBtn = card.querySelector('.card-save');
+            if (saveBtn) saveBtn.disabled = !enabled;
+
+            const savedAtEl = card.querySelector('.saved-at');
+            if (savedAtEl) savedAtEl.textContent = record.savedAt ? `Сохранено в ${record.savedAt}` : '';
+        }
+
+        async function handleGIHSave() {
+            const roomInput = $('#gih-room').value.trim();
+            if (!roomInput) {
+                $('#gih-room').focus();
+                return alert('Введите номер комнаты');
+            }
+
+            const area = $('#gih-products-area');
+            const selectedCounts = {};
+            area.querySelectorAll('.product-btn.active').forEach(btn => {
+                const key = btn.dataset.product;
+                if (!key) return;
+                const q = btn.querySelector('.product-count');
+                selectedCounts[key] = q ? parseInt(q.textContent || '1', 10) : 1;
+            });
+
+            if (Object.keys(selectedCounts).length === 0) {
+                for (const [k, v] of Object.entries(gihTempProducts)) {
+                    if (v > 0) selectedCounts[k] = v;
+                }
+            }
+            if (Object.keys(selectedCounts).length === 0) {
+                return alert('Выберите хотя бы один продукт');
+            }
+
+            if (gihBundleActive) {
+                editingBundleId = await syncBundleForRoom(roomInput);
+            }
+
+            if (editingGIHId) {
+                const rec = appData.gihRecords.find(r => r.id === editingGIHId);
+                if (!rec) return alert('Запись не найдена');
+
+                const queues = {};
+                (rec.products || []).forEach(p => {
+                    queues[p.name] = queues[p.name] || [];
+                    queues[p.name].push(Number(p.status || 0));
+                });
+
+                const newArr = [];
+                Object.entries(selectedCounts).forEach(([k, cnt]) => {
+                    for (let i = 0; i < cnt; i++) {
+                        const st = (queues[k] && queues[k].length) ? queues[k].shift() : 0;
+                        newArr.push({ name: k, status: st });
+                    }
+                });
+
+                rec.room = roomInput;
+                rec.products = newArr;
+                rec.updatedAt = new Date().toISOString();
+                rec.bundleId = editingBundleId;
+                if ((rec.products || []).some(p => Number(p.status || 0) !== 0)) rec.statusMode = null;
+
+                renderAllGIHRecords();
+                saveDebounced();
+            } else {
+                const productsArr = [];
+                Object.entries(selectedCounts).forEach(([k, cnt]) => {
+                    for (let i = 0; i < cnt; i++) {
+                        productsArr.push({ name: k, status: 0 });
+                    }
+                });
+
+                const safeId = `${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
+                const rec = {
+                    id: safeId,
+                    room: roomInput,
+                    products: productsArr,
+                    statusMode: null,
+                    comment: '',
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    savedAt: null,
+                    bundleId: editingBundleId
+                };
+
+                appData.gihRecords.push(rec);
+                renderAllGIHRecords();
+                saveDebounced();
+            }
+
+            $('#gih-form').classList.remove('show');
+            clearGIHForm();
+            updateGIHSummary();
+            updateGIHRoomsSummary();
+        }
+
+        async function syncBundleForRoom(room) {
+            if (!room) return null;
+            const last = await findLastHistoryRecord(room);
+            if (last) {
+                if (last.record.bundleId) {
+                    return last.record.bundleId;
+                } else {
+                    const newBundleId = `${room}_bundle_${Date.now()}`;
+                    last.record.bundleId = newBundleId;
+                    await updateRecordInHistory(last.record, last.dateKey, last.roomKey);
+                    return newBundleId;
+                }
+            }
+            return `${room}_bundle_${Date.now()}`;
+        }
+
+        function updateGIHSummary() {
+            const container = $("#gih-summary");
+            const listEl = $("#gih-summary-list");
+            if (!container || !listEl) return;
+
+            const counts = {};
+            appData.gihRecords.filter(r => !r.savedAt).forEach(rec => {
+                (rec.products || []).forEach(p => {
+                    if (!p || !p.name) return;
+                    counts[p.name] = (counts[p.name] || 0) + 1;
+                });
+            });
+
+            const entries = Object.entries(counts);
+            if (entries.length === 0) {
+                container.style.display = "none";
+                listEl.innerHTML = "";
+                return;
+            }
+
+            entries.sort((a, b) => b[1] - a[1]);
+
+            const htmlParts = entries.map(([key, count]) => {
+                const name = getProductName(key);
+                return `<div><strong>${name}</strong> x${count}</div>`;
+            });
+
+            listEl.innerHTML = htmlParts.join("");
+            container.style.display = "block";
+        }
+
+        function updateGIHRoomsSummary() {
+            const cont = $('#gih-rooms-summary');
+            const list = $('#gih-rooms-summary-list');
+            const savedEl = $('#rooms-saved-count');
+            const totalEl = $('#rooms-total-count');
+            if (!cont || !list) return;
+
+            const records = (appData && appData.gihRecords) ? appData.gihRecords : [];
+            const total = records.length;
+            const saved = records.filter(r => r && r.savedAt).length;
+
+            if (savedEl) savedEl.textContent = String(saved);
+            if (totalEl) totalEl.textContent = String(total);
+
+            if (total === 0) {
+                cont.style.display = 'none';
+                list.innerHTML = '';
+                return;
+            } else {
+                cont.style.display = 'block';
+            }
+
+            let html = '';
+            records.forEach((rec, i) => {
+                const isSaved = !!rec.savedAt;
+                const label = (rec && (rec.room || rec.number)) ? (rec.room || rec.number) : ('#' + (i + 1));
+                const savedClass = isSaved ? ' saved' : '';
+                html += `<div class="room-chip${savedClass}" data-id="${rec.id}">${label}</div>`;
+            });
+            list.innerHTML = html;
+
+            list.querySelectorAll('.room-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    const id = chip.getAttribute('data-id');
+                    const card = document.querySelector(`.gih-card[data-id="${id}"]`);
+                    if (!card) return;
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    card.classList.remove('highlighted');
+                    void card.offsetWidth;
+                    card.classList.add('highlighted');
+                    setTimeout(() => card.classList.remove('highlighted'), 800);
+                });
+            });
+        }
+
+        function initSummariesToggle() {
+            const summary = $("#gih-summary");
+            const list = $("#gih-summary-list");
+            const arrow = $("#gih-summary-arrow");
+            if (summary && list && arrow) {
+                let isCollapsed = localStorage.getItem("gihSummaryCollapsed");
+                isCollapsed = isCollapsed === null ? true : (isCollapsed === "true");
+
+                function apply() {
+                    summary.classList.toggle("collapsed", isCollapsed);
+                    summary.classList.toggle("expanded", !isCollapsed);
+                }
+
+                summary.addEventListener("click", () => {
+                    isCollapsed = !isCollapsed;
+                    localStorage.setItem("gihSummaryCollapsed", String(isCollapsed));
+                    apply();
+                });
+
+                apply();
+            }
+
+            const roomsSummary = $('#gih-rooms-summary');
+            const roomsList = $('#gih-rooms-summary-list');
+            const roomsArrow = $('#gih-rooms-summary-arrow');
+            if (roomsSummary && roomsList && roomsArrow) {
+                let isCollapsed = localStorage.getItem('gihRoomsCollapsed');
+                isCollapsed = isCollapsed === null ? true : (isCollapsed === 'true');
+
+                function apply() {
+                    roomsSummary.classList.toggle('collapsed', isCollapsed);
+                    roomsSummary.classList.toggle('expanded', !isCollapsed);
+                }
+
+                roomsSummary.addEventListener('click', () => {
+                    isCollapsed = !isCollapsed;
+                    localStorage.setItem('gihRoomsCollapsed', String(isCollapsed));
+                    apply();
+                });
+
+                apply();
+            }
+        }
+
+        function setGIHDate() {
+            const el = $('#gih-title-date');
+            if (!el) return;
+            const today = new Date();
+            const dd = String(today.getDate()).padStart(2, '0');
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const yy = String(today.getFullYear()).slice(-2);
+            el.textContent = `GIH ${dd}.${mm}.${yy}`;
+        }
+
+        function formatDateLabelFromKey(key) {
+            const [y, m, d] = String(key).split('-');
+            if (!y || !m || !d) return key;
+            return `${d}.${m}.${y.slice(-2)}`;
+        }
+
+        function addDaysToKey(key, delta) {
+            const [y, m, d] = String(key).split('-').map(Number);
+            if (!y || !m || !d) return key;
+            const dt = new Date(y, m - 1, d);
+            dt.setDate(dt.getDate() + delta);
+            return getLocalDateKey(dt);
+        }
+
+        function renderHistoryDateLabel() {
+            const titleEl = document.getElementById('history-title-date');
+            if (titleEl) titleEl.textContent = 'История';
+            const dateSpan = document.getElementById('history-date-label');
+            if (dateSpan) dateSpan.textContent = formatDateLabelFromKey(historyDateKey);
+        }
+
+        function groupRecordsByBundle(records) {
+            const groups = [];
+            const map = new Map();
+            records.forEach(rec => {
+                if (rec.bundleId) {
+                    const key = `${rec.room}_${rec.bundleId}`;
+                    if (!map.has(key)) {
+                        map.set(key, { room: rec.room, bundleId: rec.bundleId, records: [] });
+                    }
+                    map.get(key).records.push(rec);
+                } else {
+                    groups.push({ room: rec.room, bundleId: null, records: [rec] });
+                }
+            });
+            map.forEach(group => groups.push(group));
+            return groups;
+        }
+
+        function sortRecordsByDateDesc(records) {
+            return records.sort((a, b) => {
+                if (a.updatedAt && b.updatedAt) {
+                    return b.updatedAt.localeCompare(a.updatedAt);
+                }
+                const dateA = a.savedDate || a.dateKey || '';
+                const dateB = b.savedDate || b.dateKey || '';
+                if (dateA !== dateB) return dateB.localeCompare(dateA);
+                const timeA = a.savedAt || '00:00';
+                const timeB = b.savedAt || '00:00';
+                return timeB.localeCompare(timeA);
+            });
+        }
+
+        // НОВАЯ ФУНКЦИЯ: расчёт суммы для одной записи (оставлена для совместимости)
+        function calculateRecordSum(record) {
+            if (!record || !record.products) return 0;
+            const countAll = record.statusMode === 'dnd' || record.statusMode === 'putOut';
+            let total = 0;
+            record.products.forEach(p => {
+                const status = Number(p.status || 0);
+                const shouldCount = countAll || [1, 3, 4].includes(status);
+                if (!shouldCount) return;
+                const meta = getProductMeta(p.name);
+                const price = meta.price ? Number(meta.price) : 0;
+                total += price;
+            });
+            return total;
+        }
+
+        function calculateBundleBill(records) {
+    // Сортируем по возрастанию даты
+    const sorted = [...records].sort((a, b) => {
+        const dateA = a.savedDate || '';
+        const dateB = b.savedDate || '';
+        if (dateA !== dateB) return dateA.localeCompare(dateB);
+        const timeA = a.savedAt || '00:00';
+        const timeB = b.savedAt || '00:00';
+        return timeA.localeCompare(timeB);
+    });
+
+    // Собираем все продукты, встречающиеся в записях
+    const allProducts = new Set();
+    sorted.forEach(rec => {
+        if (rec.products) {
+            rec.products.forEach(p => allProducts.add(p.name));
+        }
+    });
+
+    // Инициализация состояния
+    const state = new Map();
+    allProducts.forEach(name => {
+        state.set(name, { consumed: 0, pending: 0, unfulfilled: 0 });
+    });
+
+    for (const rec of sorted) {
+        if (rec.statusMode) {
+            // Подсчёт количества каждого продукта в этой записи (для режима putOut)
+            const productCounts = {};
+            if (rec.products) {
+                rec.products.forEach(p => {
+                    productCounts[p.name] = (productCounts[p.name] || 0) + 1;
+                });
+            }
+            switch (rec.statusMode) {
+                case 'allInPlace': // всё на месте
+                    // Обнуляем pending для всех продуктов
+                    state.forEach(val => { val.pending = 0; });
+                    break;
+                case 'putOut': // всё выложили
+                    for (const name in productCounts) {
+                        const st = state.get(name);
+                        if (st) st.pending = productCounts[name]; // заменяем, а не добавляем
+                    }
+                    break;
+                case 'emptied': // опустошён
+                    state.forEach(val => {
+                        val.consumed = 0;
+                        val.pending = 0;
+                        val.unfulfilled = 0;
+                    });
+                    break;
+                case 'dnd':
+                    // ничего
+                    break;
+                default:
+                    break;
+            }
+        } else {
+            // Детальная запись: агрегируем количество каждого продукта по статусам
+            if (rec.products) {
+                const productStatusCounts = new Map(); // product -> Map(status -> count)
+                rec.products.forEach(p => {
+                    const name = p.name;
+                    const status = Number(p.status);
+                    if (!productStatusCounts.has(name)) {
+                        productStatusCounts.set(name, new Map());
+                    }
+                    const statusMap = productStatusCounts.get(name);
+                    statusMap.set(status, (statusMap.get(status) || 0) + 1);
+                });
+
+                for (const [name, statusMap] of productStatusCounts.entries()) {
+                    const st = state.get(name);
+                    if (!st) continue;
+
+                    const added = statusMap.get(1) || 0;      // пополнено
+                    const missed = statusMap.get(4) || 0;     // не пополнено
+                    const takenOut = statusMap.get(3) || 0;   // выложили
+                    const present = statusMap.get(2) || 0;    // на месте
+
+                    // Сначала обрабатываем "не пополнено"
+                    if (missed > 0) {
+                        st.consumed += missed;
+                        st.unfulfilled += missed;
+                    }
+
+                    // Затем "пополнено": сначала уменьшаем unfulfilled, остальное в consumed
+                    if (added > 0) {
+                        const cover = Math.min(added, st.unfulfilled);
+                        st.unfulfilled -= cover;
+                        st.consumed += (added - cover);
+                    }
+
+                    // Обрабатываем "выложили" и "на месте"
+                    if (takenOut > 0) {
+                        st.pending = takenOut; // заменяем на текущее количество выложенных
+                    } else if (present > 0) {
+                        st.pending = 0; // если все на месте, сбрасываем pending
+                    }
+                    // если нет ни того, ни другого, оставляем pending как есть
+                }
+            }
+        }
+    }
+
+    let total = 0;
+    state.forEach((val, name) => {
+        const meta = getProductMeta(name);
+        const price = meta.price ? Number(meta.price) : 0;
+        total += (val.consumed + val.pending) * price;
+    });
+    return total;
+}
+        function renderHistoryBundle(group, container) {
+            const card = document.createElement('div');
+            card.className = 'gih-card';
+
+            let headerHtml = `<div class="gih-card-header"><div class="gih-card-room">${group.room}`;
+            if (group.bundleId) {
+                headerHtml += ` <i class="fas fa-link" style="font-size:12px; margin-left:4px;"></i>`;
+            }
+            headerHtml += `</div></div>`;
+
+            let contentHtml = '';
+
+            // Для отображения оставляем сортировку по убыванию
+            const displayRecords = sortRecordsByDateDesc(group.records);
+
+            displayRecords.forEach((record, idx) => {
+                const timeHtml = record.savedAt ? `<div class="muted" style="font-weight:600; margin-top:6px;">${record.savedAt}</div>` : '';
+                let recordHtml = '';
+
+                const allNonNeutral = (record.products || []).length > 0 && (record.products || []).every(p => Number(p.status || 0) !== 0);
+
+                if (record.statusMode) {
+                    const groups = {};
+                    (record.products || []).forEach(p => groups[p.name] = (groups[p.name] || 0) + 1);
+                    const parts = Object.entries(groups).map(([k, cnt]) => {
+                        const name = getProductName(k);
+                        return cnt > 1 ? `${name} x${cnt}` : `${name}`;
+                    });
+                    const productsDisplay = `<div class="muted" style="margin-top:4px">${parts.join(', ') || '&nbsp;'}</div>`;
+                    const modeLabelMap = { dnd: 'DND', allInPlace: 'Всё на месте', putOut: 'Всё выложили', emptied: 'Опустошён' };
+                    const modeLabel = modeLabelMap[record.statusMode] || record.statusMode || '';
+                    const modeHtml = modeLabel ? `<div style="margin-top:4px; font-weight:600">${modeLabel}</div>` : '';
+                    const commentHtml = record.comment ? `<div class="muted" style="margin-top:4px"><strong>Комментарий:</strong> ${record.comment}</div>` : '';
+                    recordHtml = productsDisplay + modeHtml + commentHtml;
+                } else if (allNonNeutral) {
+                    const statusOrder = [1, 2, 3, 4];
+                    const statusClass = { 1: 't-added', 2: 't-here', 3: 't-out', 4: 't-miss' };
+                    const statusLabel = { 1: 'Пополнено', 2: 'На месте', 3: 'Выложили', 4: 'Не пополнено' };
+                    const groups = {};
+                    (record.products || []).forEach(p => {
+                        const st = Number(p.status || 0);
+                        const nm = p.name;
+                        groups[st] = groups[st] || {};
+                        groups[st][nm] = (groups[st][nm] || 0) + 1;
+                    });
+                    const lines = [];
+                    statusOrder.forEach(st => {
+                        if (!groups[st]) return;
+                        const names = Object.entries(groups[st]).map(([k, cnt]) => {
+                            const name = getProductName(k);
+                            return cnt > 1 ? `${name} x${cnt}` : `${name}`;
+                        });
+                        if (names.length) {
+                            const line = `<div style="margin-top:4px;">
+                                <div class="${statusClass[st]}" style="font-weight:700; font-size:13px">${statusLabel[st]}:</div>
+                                <div class="muted" style="margin-top:2px">${names.join(', ')}</div>
+                            </div>`;
+                            lines.push(line);
+                        }
+                    });
+                    const commentHtml = record.comment ? `<div class="muted" style="margin-top:4px"><strong>Комментарий:</strong> ${record.comment}</div>` : '';
+                    recordHtml = lines.join('') + commentHtml;
+                } else {
+                    const parts = (record.products || []).map(p => getProductName(p.name));
+                    const productsHtml = `<div class="muted" style="margin-top:4px">${parts.join(', ') || '&nbsp;'}</div>`;
+                    const commentHtml = record.comment ? `<div class="muted" style="margin-top:4px"><strong>Комментарий:</strong> ${record.comment}</div>` : '';
+                    recordHtml = productsHtml + commentHtml;
+                }
+
+                // Добавляем сумму записи (для информации)
+                const recordSum = calculateRecordSum(record);
+                const recordSumHtml = `<div class="record-sum">Сумма: ${recordSum} ₽</div>`;
+
+                if (idx > 0) {
+                    contentHtml += `<hr style="margin:8px 0; opacity:0.2;">`;
+                }
+                contentHtml += timeHtml + recordHtml + recordSumHtml;
+            });
+
+            // Расчёт итога по связке с помощью нового алгоритма
+            const sortedForBill = [...group.records].sort((a, b) => {
+                const dateA = a.savedDate || '';
+                const dateB = b.savedDate || '';
+                if (dateA !== dateB) return dateA.localeCompare(dateB);
+                const timeA = a.savedAt || '00:00';
+                const timeB = b.savedAt || '00:00';
+                return timeA.localeCompare(timeB);
+            });
+            const bundleTotal = calculateBundleBill(sortedForBill);
+
+            contentHtml += `<div class="bundle-total">Итоговый счёт: ${bundleTotal} ₽</div>`;
+
+            card.innerHTML = headerHtml + contentHtml;
+            container.appendChild(card);
+        }
+
+        async function loadHistoryForCurrentDate() {
+            const container = document.getElementById('history-records');
+            const emptyEl = document.getElementById('history-empty');
+            if (!container || !emptyEl) return;
+            container.innerHTML = '';
+            emptyEl.style.display = 'none';
+
+            try {
+                const snap = await database.ref(`gihHistory/${historyDateKey}`).once('value');
+                const data = snap.val() || {};
+                const records = [];
+                Object.entries(data).forEach(([roomKey, rec]) => {
+                    if (!rec) return;
+                    const record = historyRecordFromFirebase(roomKey, historyDateKey, rec);
+                    records.push(record);
+                });
+
+                if (!records.length) {
+                    emptyEl.style.display = 'block';
+                    return;
+                }
+
+                const groups = groupRecordsByBundle(records);
+                groups.sort((a, b) => {
+                    const na = Number(a.room);
+                    const nb = Number(b.room);
+                    if (!isFinite(na) && !isFinite(nb)) return 0;
+                    if (!isFinite(na)) return 1;
+                    if (!isFinite(nb)) return -1;
+                    return na - nb;
+                });
+                groups.forEach(group => {
+                    renderHistoryBundle(group, container);
+                });
+            } catch (e) {
+                console.error('Ошибка загрузки истории:', e);
+                emptyEl.style.display = 'block';
+                emptyEl.textContent = 'Ошибка загрузки истории';
+            }
+        }
+
+        let historySearchMode = false;
+
+        function historyRecordFromFirebase(roomKey, dateKey, fbRec) {
+            const room = String(roomKey).split('_')[0];
+            const rec = { 
+                room, 
+                savedAt: fbRec.savedAt || '', 
+                statusMode: fbRec.statusMode, 
+                comment: fbRec.comment || '',
+                updatedAt: fbRec.updatedAt || null,
+                savedDate: dateKey  // добавляем дату для сортировки
+            };
+            if (fbRec.bundleId) rec.bundleId = fbRec.bundleId;
+            const prodArr = [];
+            const products = fbRec.products || {};
+            Object.entries(products).forEach(([name, val]) => {
+                if (Array.isArray(val)) {
+                    val.forEach(st => {
+                        const code = typeof st === 'string' ? (STATUS_CODE_FROM_LABEL[st] ?? 0) : Number(st || 0);
+                        prodArr.push({ name, status: code });
+                    });
+                } else {
+                    prodArr.push({ name, status: Number(val || 0) });
+                }
+            });
+            rec.products = prodArr;
+            normalizeRecordProducts(rec);
+            return rec;
+        }
+
+        async function searchHistoryByRoom(roomQuery) {
+            const q = String(roomQuery || '').trim();
+            if (!q) return [];
+
+            const results = [];
+            try {
+                const snap = await database.ref('gihHistory').once('value');
+                const data = snap.val() || {};
+                Object.entries(data).forEach(([dateKey, dayData]) => {
+                    if (!dayData || typeof dayData !== 'object') return;
+                    Object.entries(dayData).forEach(([roomKey, rec]) => {
+                        if (!rec) return;
+                        const baseRoom = String(roomKey).split('_')[0];
+                        if (baseRoom.toLowerCase().includes(q.toLowerCase())) {
+                            results.push({ roomKey, dateKey, record: rec });
+                        }
+                    });
+                });
+            } catch (e) {
+                console.error('Ошибка поиска истории:', e);
+            }
+            results.sort((a, b) => {
+                const dA = a.dateKey;
+                const dB = b.dateKey;
+                if (dA !== dB) return dB.localeCompare(dA);
+                const ra = Number(String(a.roomKey).split('_')[0]);
+                const rb = Number(String(b.roomKey).split('_')[0]);
+                return (ra || 0) - (rb || 0);
+            });
+            return results;
+        }
+
+        function normalizeHistoryItem(item) {
+            const rec = historyRecordFromFirebase(item.roomKey, item.dateKey, item.record);
+            return { ...item, record: rec };
+        }
+
+        function renderHistorySearchBundle(group, container) {
+            const card = document.createElement('div');
+            card.className = 'gih-card';
+
+            let headerHtml = `<div class="gih-card-header"><div class="gih-card-room">${group.room}`;
+            if (group.bundleId) {
+                headerHtml += ` <i class="fas fa-link" style="font-size:12px; margin-left:4px;"></i>`;
+            }
+            headerHtml += `</div></div>`;
+
+            let contentHtml = '';
+
+            // Для отображения сортируем по убыванию даты
+            const displayRecords = sortRecordsByDateDesc(group.records);
+
+            displayRecords.forEach((record, idx) => {
+                const dateLabel = record.savedDate ? formatDateLabelFromKey(record.savedDate) : '';
+                const timeHtml = record.savedAt ? `<div class="muted" style="font-weight:600; margin-top:6px;">${dateLabel} ${record.savedAt}</div>` : 
+                                (dateLabel ? `<div class="muted" style="font-weight:600; margin-top:6px;">${dateLabel}</div>` : '');
+                let recordHtml = '';
+
+                const allNonNeutral = (record.products || []).length > 0 && (record.products || []).every(p => Number(p.status || 0) !== 0);
+
+                if (record.statusMode) {
+                    const groups = {};
+                    (record.products || []).forEach(p => groups[p.name] = (groups[p.name] || 0) + 1);
+                    const parts = Object.entries(groups).map(([k, cnt]) => {
+                        const name = getProductName(k);
+                        return cnt > 1 ? `${name} x${cnt}` : `${name}`;
+                    });
+                    const productsDisplay = `<div class="muted" style="margin-top:4px">${parts.join(', ') || '&nbsp;'}</div>`;
+                    const modeLabelMap = { dnd: 'DND', allInPlace: 'Всё на месте', putOut: 'Всё выложили', emptied: 'Опустошён' };
+                    const modeLabel = modeLabelMap[record.statusMode] || record.statusMode || '';
+                    const modeHtml = modeLabel ? `<div style="margin-top:4px; font-weight:600">${modeLabel}</div>` : '';
+                    const commentHtml = record.comment ? `<div class="muted" style="margin-top:4px"><strong>Комментарий:</strong> ${record.comment}</div>` : '';
+                    recordHtml = productsDisplay + modeHtml + commentHtml;
+                } else if (allNonNeutral) {
+                    const statusOrder = [1, 2, 3, 4];
+                    const statusClass = { 1: 't-added', 2: 't-here', 3: 't-out', 4: 't-miss' };
+                    const statusLabel = { 1: 'Пополнено', 2: 'На месте', 3: 'Выложили', 4: 'Не пополнено' };
+                    const groups = {};
+                    (record.products || []).forEach(p => {
+                        const st = Number(p.status || 0);
+                        const nm = p.name;
+                        groups[st] = groups[st] || {};
+                        groups[st][nm] = (groups[st][nm] || 0) + 1;
+                    });
+                    const lines = [];
+                    statusOrder.forEach(st => {
+                        if (!groups[st]) return;
+                        const names = Object.entries(groups[st]).map(([k, cnt]) => {
+                            const name = getProductName(k);
+                            return cnt > 1 ? `${name} x${cnt}` : `${name}`;
+                        });
+                        if (names.length) {
+                            const line = `<div style="margin-top:4px;">
+                                <div class="${statusClass[st]}" style="font-weight:700; font-size:13px">${statusLabel[st]}:</div>
+                                <div class="muted" style="margin-top:2px">${names.join(', ')}</div>
+                            </div>`;
+                            lines.push(line);
+                        }
+                    });
+                    const commentHtml = record.comment ? `<div class="muted" style="margin-top:4px"><strong>Комментарий:</strong> ${record.comment}</div>` : '';
+                    recordHtml = lines.join('') + commentHtml;
+                } else {
+                    const parts = (record.products || []).map(p => getProductName(p.name));
+                    const productsHtml = `<div class="muted" style="margin-top:4px">${parts.join(', ') || '&nbsp;'}</div>`;
+                    const commentHtml = record.comment ? `<div class="muted" style="margin-top:4px"><strong>Комментарий:</strong> ${record.comment}</div>` : '';
+                    recordHtml = productsHtml + commentHtml;
+                }
+
+                const recordSum = calculateRecordSum(record);
+                const recordSumHtml = `<div class="record-sum">Сумма: ${recordSum} ₽</div>`;
+
+                if (idx > 0) {
+                    contentHtml += `<hr style="margin:8px 0; opacity:0.2;">`;
+                }
+                contentHtml += timeHtml + recordHtml + recordSumHtml;
+            });
+
+            // Расчёт итога по связке
+            const sortedForBill = [...group.records].sort((a, b) => {
+                const dateA = a.savedDate || '';
+                const dateB = b.savedDate || '';
+                if (dateA !== dateB) return dateA.localeCompare(dateB);
+                const timeA = a.savedAt || '00:00';
+                const timeB = b.savedAt || '00:00';
+                return timeA.localeCompare(timeB);
+            });
+            const bundleTotal = calculateBundleBill(sortedForBill);
+
+            contentHtml += `<div class="bundle-total">Итоговый счёт: ${bundleTotal} ₽</div>`;
+
+            card.innerHTML = headerHtml + contentHtml;
+            container.appendChild(card);
+        }
+
+        async function runHistorySearch() {
+            const input = document.getElementById('history-search-input');
+            const wrap = document.getElementById('history-search-wrap');
+            const resultsContainer = document.getElementById('history-search-results');
+            const emptyEl = document.getElementById('history-search-empty');
+            const dateView = document.getElementById('history-date-view');
+            const searchView = document.getElementById('history-search-view');
+            const controls = document.querySelector('.history-date-controls');
+            if (!input || !resultsContainer || !emptyEl) return;
+
+            const q = input.value.trim();
+            if (!q) {
+                historySearchMode = false;
+                dateView.style.display = '';
+                searchView.style.display = 'none';
+                if (wrap) wrap.classList.remove('visible');
+                if (controls) controls.classList.remove('search-active');
+                renderHistoryDateLabel();
+                loadHistoryForCurrentDate();
+                return;
+            }
+
+            historySearchMode = true;
+            if (wrap) wrap.classList.add('visible');
+            if (controls) controls.classList.add('search-active');
+            dateView.style.display = 'none';
+            searchView.style.display = '';
+
+            resultsContainer.innerHTML = '';
+            emptyEl.style.display = 'none';
+
+            const results = await searchHistoryByRoom(q);
+            if (!results.length) {
+                emptyEl.style.display = 'block';
+                return;
+            }
+
+            const normalized = results.map(normalizeHistoryItem);
+            const groupMap = new Map();
+            normalized.forEach(item => {
+                const rec = item.record;
+                if (rec.bundleId) {
+                    const key = rec.bundleId;
+                    if (!groupMap.has(key)) {
+                        groupMap.set(key, { room: rec.room, bundleId: rec.bundleId, records: [] });
+                    }
+                    groupMap.get(key).records.push({ ...rec, savedDate: item.dateKey }); // добавляем savedDate
+                } else {
+                    const key = `no_${rec.id || Math.random()}`;
+                    groupMap.set(key, { room: rec.room, bundleId: null, records: [{ ...rec, savedDate: item.dateKey }] });
+                }
+            });
+            const groups = Array.from(groupMap.values());
+            groups.sort((a, b) => {
+                const na = Number(a.room);
+                const nb = Number(b.room);
+                if (!isFinite(na) && !isFinite(nb)) return 0;
+                if (!isFinite(na)) return 1;
+                if (!isFinite(nb)) return -1;
+                return na - nb;
+            });
+            groups.forEach(group => {
+                renderHistorySearchBundle(group, resultsContainer);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            setGIHDate();
+            await loadProductsFromFirebase();
+            buildGIHProductsArea();
+            initSummariesToggle();
+
+            const savedTab = localStorage.getItem('gihActiveTab') || 'gih';
+            document.querySelectorAll('.tab-nav-button').forEach(btn => {
+                const tab = btn.dataset.tab;
+                if (tab === savedTab) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            const gihSection = document.getElementById('gih-section');
+            const histSection = document.getElementById('history-section');
+            if (savedTab === 'history') {
+                gihSection.style.display = 'none';
+                histSection.style.display = 'block';
+                renderHistoryDateLabel();
+                await loadHistoryForCurrentDate();
+            } else {
+                gihSection.style.display = 'block';
+                histSection.style.display = 'none';
+            }
+
+            const bundleToggle = $('#gih-bundle-toggle');
+            if (bundleToggle) {
+                bundleToggle.addEventListener('click', async () => {
+                    const room = $('#gih-room').value.trim();
+                    if (!room) {
+                        alert('Сначала введите номер комнаты');
+                        return;
+                    }
+                    const newActive = !gihBundleActive;
+                    if (newActive) {
+                        editingBundleId = await syncBundleForRoom(room);
+                    } else {
+                        editingBundleId = null;
+                    }
+                    gihBundleActive = newActive;
+                    updateGIHBundleToggle(gihBundleActive, editingBundleId);
+                });
+            }
+
+            $('#gih-room').addEventListener('input', async () => {
+                if (gihBundleActive) {
+                    const room = $('#gih-room').value.trim();
+                    if (room) {
+                        editingBundleId = await syncBundleForRoom(room);
+                        updateGIHBundleToggle(true, editingBundleId);
+                    } else {
+                        gihBundleActive = false;
+                        editingBundleId = null;
+                        updateGIHBundleToggle(false, null);
+                    }
+                }
+            });
+
+            document.querySelectorAll('.tab-nav-button').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const tab = btn.dataset.tab;
+                    document.querySelectorAll('.tab-nav-button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+                    localStorage.setItem('gihActiveTab', tab);
+
+                    const gih = document.getElementById('gih-section');
+                    const hist = document.getElementById('history-section');
+                    if (!gih || !hist) return;
+
+                    if (tab === 'history') {
+                        gih.style.display = 'none';
+                        hist.style.display = 'block';
+                        renderHistoryDateLabel();
+                        const dateView = document.getElementById('history-date-view');
+                        const searchView = document.getElementById('history-search-view');
+                        if (historySearchMode && searchView && dateView) {
+                            dateView.style.display = 'none';
+                            searchView.style.display = '';
+                        } else {
+                            dateView && (dateView.style.display = '');
+                            searchView && (searchView.style.display = 'none');
+                            await loadHistoryForCurrentDate();
+                        }
+                    } else {
+                        gih.style.display = 'block';
+                        hist.style.display = 'none';
+                    }
+                });
+            });
+
+            const historySearchInput = document.getElementById('history-search-input');
+            const historySearchToggle = document.getElementById('history-search-toggle');
+            const historySearchWrap = document.getElementById('history-search-wrap');
+            const historySearchClear = document.getElementById('history-search-clear');
+            const historyControls = document.querySelector('.history-date-controls');
+            let historySearchDebounceTimer;
+
+            if (historySearchToggle && historySearchWrap && historyControls) {
+                historySearchToggle.addEventListener('click', () => {
+                    const isVisible = historySearchWrap.classList.contains('visible');
+                    if (!isVisible) {
+                        historySearchWrap.classList.add('visible');
+                        historyControls.classList.add('search-active');
+                        setTimeout(() => historySearchInput && historySearchInput.focus(), 50);
+                    } else {
+                        if (!historySearchInput || !historySearchInput.value.trim()) {
+                            historySearchWrap.classList.remove('visible');
+                            historyControls.classList.remove('search-active');
+                        }
+                    }
+                });
+            }
+            if (historySearchClear) historySearchClear.addEventListener('click', () => {
+                if (historySearchInput) historySearchInput.value = '';
+                runHistorySearch();
+            });
+            if (historySearchInput) {
+                historySearchInput.addEventListener('input', () => {
+                    clearTimeout(historySearchDebounceTimer);
+                    historySearchDebounceTimer = setTimeout(runHistorySearch, 280);
+                });
+            }
+
+            const prevDayBtn = document.getElementById('history-prev-day');
+            const nextDayBtn = document.getElementById('history-next-day');
+            const dateBtn = document.getElementById('history-date-button');
+            const calOverlay = document.getElementById('history-calendar-overlay');
+            const calGrid = document.getElementById('history-cal-grid');
+            const calMonthLabel = document.getElementById('history-cal-month-label');
+            const calPrevMonth = document.getElementById('history-cal-prev-month');
+            const calNextMonth = document.getElementById('history-cal-next-month');
+
+            let calendarMonthDate = new Date();
+
+            async function loadDayCounts(year, month) {
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const counts = {};
+                const promises = [];
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const dateKey = getLocalDateKey(new Date(year, month, d));
+                    promises.push(
+                        database.ref(`gihHistory/${dateKey}`).once('value').then(snap => {
+                            const val = snap.val();
+                            counts[dateKey] = val && typeof val === 'object' ? Object.keys(val).length : 0;
+                        })
+                    );
+                }
+                await Promise.all(promises);
+                return counts;
+            }
+
+            async function renderCalendar() {
+                if (!calGrid || !calMonthLabel) return;
+                calGrid.innerHTML = '';
+                const year = calendarMonthDate.getFullYear();
+                const month = calendarMonthDate.getMonth();
+                const today = new Date();
+                const todayKey = getLocalDateKey(today);
+
+                const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+                calMonthLabel.textContent = `${monthNames[month]} ${year}`;
+
+                const firstDay = new Date(year, month, 1);
+                const startWeekday = (firstDay.getDay() + 6) % 7;
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+                const weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+                weekdays.forEach(w => {
+                    const div = document.createElement('div');
+                    div.className = 'history-calendar-weekday';
+                    div.textContent = w;
+                    calGrid.appendChild(div);
+                });
+
+                for (let i = 0; i < startWeekday; i++) {
+                    const div = document.createElement('div');
+                    div.className = 'history-calendar-day';
+                    calGrid.appendChild(div);
+                }
+
+                const [selY, selM, selD] = historyDateKey.split('-').map(Number);
+                const counts = await loadDayCounts(year, month);
+
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const dateKey = getLocalDateKey(new Date(year, month, d));
+                    const count = counts[dateKey] || 0;
+                    const isToday = dateKey === todayKey;
+
+                    const div = document.createElement('div');
+                    div.className = 'history-calendar-day history-calendar-day-cell';
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.textContent = String(d);
+
+                    if (selY === year && selM === month + 1 && selD === d) {
+                        btn.classList.add('selected');
+                    }
+                    if (isToday) {
+                        btn.classList.add('today');
+                    }
+
+                    if (count > 0) {
+                        const countSpan = document.createElement('span');
+                        countSpan.className = 'history-calendar-day-count';
+                        countSpan.textContent = String(count);
+                        div.appendChild(countSpan);
+                    }
+
+                    btn.addEventListener('click', async () => {
+                        historyDateKey = dateKey;
+                        renderHistoryDateLabel();
+                        await loadHistoryForCurrentDate();
+                        if (calOverlay) calOverlay.classList.remove('show');
+                    });
+
+                    div.appendChild(btn);
+                    calGrid.appendChild(div);
+                }
+            }
+
+            if (prevDayBtn) {
+                prevDayBtn.addEventListener('click', async () => {
+                    historyDateKey = addDaysToKey(historyDateKey, -1);
+                    renderHistoryDateLabel();
+                    await loadHistoryForCurrentDate();
+                });
+            }
+
+            if (nextDayBtn) {
+                nextDayBtn.addEventListener('click', async () => {
+                    historyDateKey = addDaysToKey(historyDateKey, 1);
+                    renderHistoryDateLabel();
+                    await loadHistoryForCurrentDate();
+                });
+            }
+
+            if (dateBtn && calOverlay) {
+                dateBtn.addEventListener('click', () => {
+                    const [y, m, d] = historyDateKey.split('-').map(Number);
+                    calendarMonthDate = new Date(y, (m || 1) - 1, d || 1);
+                    calOverlay.classList.add('show');
+                    renderCalendar();
+                });
+
+                calOverlay.addEventListener('click', (e) => {
+                    if (e.target === calOverlay) {
+                        calOverlay.classList.remove('show');
+                    }
+                });
+            }
+
+            if (calPrevMonth) {
+                calPrevMonth.addEventListener('click', () => {
+                    calendarMonthDate.setMonth(calendarMonthDate.getMonth() - 1);
+                    renderCalendar();
+                });
+            }
+
+            if (calNextMonth) {
+                calNextMonth.addEventListener('click', () => {
+                    calendarMonthDate.setMonth(calendarMonthDate.getMonth() + 1);
+                    renderCalendar();
+                });
+            }
+
+            const calTodayBtn = document.getElementById('history-cal-today-btn');
+            if (calTodayBtn && calOverlay) {
+                calTodayBtn.addEventListener('click', async () => {
+                    historyDateKey = getLocalDateKey(new Date());
+                    calendarMonthDate = new Date();
+                    renderHistoryDateLabel();
+                    await loadHistoryForCurrentDate();
+                    calOverlay.classList.remove('show');
+                });
+            }
+
+            $('#add-gih-btn').addEventListener('click', () => {
+                const f = $('#gih-form');
+                if (f.classList.contains('show')) {
+                    f.classList.remove('show');
+                    editingGIHId = null;
+                    clearGIHForm();
+                } else {
+                    f.classList.add('show');
+                    editingGIHId = null;
+                    clearGIHForm();
+                    setTimeout(() => {
+                        try {
+                            $('#gih-room').focus();
+                            $('#gih-room').select();
+                        } catch (e) {}
+                    }, 40);
+                }
+            });
+
+            $('#cancel-gih').addEventListener('click', () => {
+                $('#gih-form').classList.remove('show');
+                editingGIHId = null;
+                clearGIHForm();
+            });
+
+            $('#save-gih').addEventListener('click', handleGIHSave);
+
+            const sortBtn = $('#gih-sort-btn');
+            if (sortBtn) {
+                sortBtn.addEventListener('click', () => {
+                    gihSortAsc = !gihSortAsc;
+                    sortBtn.innerHTML = gihSortAsc 
+                        ? '<i class="fas fa-sort-numeric-down"></i>'
+                        : '<i class="fas fa-sort-numeric-up"></i>';
+                    try {
+                        localStorage.setItem('gihSortDirection', gihSortAsc ? 'asc' : 'desc');
+                    } catch (e) {}
+                    renderAllGIHRecords();
+                });
+
+                try {
+                    const savedDir = localStorage.getItem('gihSortDirection');
+                    if (savedDir === 'desc') {
+                        gihSortAsc = false;
+                        sortBtn.innerHTML = '<i class="fas fa-sort-numeric-up"></i>';
+                    }
+                } catch (e) {}
+            }
+
+            setupFirebaseListener();
+            await loadFromFirebase();
+        });
+    </script>
+</body>
+</html>
