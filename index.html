@@ -2366,8 +2366,112 @@
                 }
             }
         }
+function calculateBundleBill(records) {
+    // Сортируем по возрастанию даты
+    const sorted = [...records].sort((a, b) => {
+        const dateA = a.savedDate || '';
+        const dateB = b.savedDate || '';
+        if (dateA !== dateB) return dateA.localeCompare(dateB);
+        const timeA = a.savedAt || '00:00';
+        const timeB = b.savedAt || '00:00';
+        return timeA.localeCompare(timeB);
+    });
+
+    // Собираем все продукты, встречающиеся в записях
+    const allProducts = new Set();
+    sorted.forEach(rec => {
+        if (rec.products) {
+            rec.products.forEach(p => allProducts.add(p.name));
+        }
+    });
+
+    // Инициализация состояния
+    const state = new Map();
+    allProducts.forEach(name => {
+        state.set(name, { consumed: 0, pending: 0, unfulfilled: 0 });
+    });
+
+    for (const rec of sorted) {
+        if (rec.statusMode) {
+            // Подсчёт количества каждого продукта в этой записи (для режима putOut)
+            const productCounts = {};
+            if (rec.products) {
+                rec.products.forEach(p => {
+                    productCounts[p.name] = (productCounts[p.name] || 0) + 1;
+                });
+            }
+            switch (rec.statusMode) {
+                case 'allInPlace': // всё на месте
+                    state.forEach(val => { val.pending = 0; });
+                    break;
+                case 'putOut': // всё выложили
+                    for (const name in productCounts) {
+                        const st = state.get(name);
+                        if (st) st.pending = productCounts[name]; // заменяем, а не добавляем
+                    }
+                    break;
+                case 'emptied': // опустошён
+                    state.forEach(val => {
+                        val.consumed = 0;
+                        val.pending = 0;
+                        val.unfulfilled = 0;
+                    });
+                    break;
+                case 'dnd':
+                    // ничего
+                    break;
+                default:
+                    break;
+            }
+        } else {
+            // Детальная запись
+            if (rec.products) {
+                // Группируем по продукту и статусу
+                const productStatusCounts = new Map(); // product -> Map(status -> count)
+                rec.products.forEach(p => {
+                    const name = p.name;
+                    const status = Number(p.status);
+                    if (!productStatusCounts.has(name)) {
+                        productStatusCounts.set(name, new Map());
+                    }
+                    const statusMap = productStatusCounts.get(name);
+                    statusMap.set(status, (statusMap.get(status) || 0) + 1);
+                });
+
+                // Обрабатываем каждый продукт
+                for (const [name, statusMap] of productStatusCounts.entries()) {
+                    const st = state.get(name);
+                    if (!st) continue;
+
+                    const added = statusMap.get(1) || 0;      // пополнено
+                    const missed = statusMap.get(4) || 0;     // не пополнено
+                    const takenOut = statusMap.get(3) || 0;   // выложили
+                    const present = statusMap.get(2) || 0;    // на месте
+
+                    // Обработка потребления
+                    if (missed > 0) {
+                        st.consumed += missed;
+                        st.unfulfilled += missed;
+                    }
+                    if (added > 0) {
+                        const cover = Math.min(added, st.unfulfilled);
+                        st.unfulfilled -= cover;
+                        st.consumed += (added - cover);
+                    }
+
+                    // Установка pending (текущее отсутствие)
+                    if (takenOut > 0) {
+                        st.pending = takenOut;   // заменяем на количество выложенных
+                    } else if (added > 0 || missed > 0 || present > 0) {
+                        st.pending = 0;           // если есть потребление или всё на месте, сбрасываем
+                    }
+                    // иначе оставляем pending как есть (например, если в записи нет информации о продукте)
+                }
+            }
+        }
     }
 
+    // Подсчёт итога
     let total = 0;
     state.forEach((val, name) => {
         const meta = getProductMeta(name);
